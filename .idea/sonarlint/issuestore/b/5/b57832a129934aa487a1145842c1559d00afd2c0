@@ -1,0 +1,14 @@
+
+u	java:S120"ZRename this package name to match the regular expression '^[a-z_]+(\.[a-z_][a-z0-9_]*)*$'.(±ÌÚr8øð„¹Æ1
+U
+java:S18540"8Remove this useless assignment to local variable "list".(«¯¸ 8ƒñ„¹Æ1
+a
+java:S4143<"DVerify this is the key that was intended; it was already set before.(…›Í™8œ¢¹Æ1
+F
+java:S14810")Remove this unused "list" local variable.(«¯¸ 8…ñ„¹Æ1
+]	java:S125>"<This block of commented-out lines of code should be removed.(ÇÜÛûÿÿÿÿ8ˆñ„¹Æ1
+X	java:S125A"<This block of commented-out lines of code should be removed.(í·çÜ8ÂÔ†¹Æ1
+L	java:S106D"+Replace this use of System.out by a logger.(Å­ËÝúÿÿÿÿ8ˆñ„¹Æ1
+X	java:S125K"<This block of commented-out lines of code should be removed.(£¿¿û8‰ñ„¹Æ1
+Z
+java:S1128"8Remove this unused import 'java.util.stream.Collectors'.(Óóº´úÿÿÿÿ8Â³Œ¹Æ1

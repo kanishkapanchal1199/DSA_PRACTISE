@@ -1,0 +1,138 @@
+/*
+ *
+ * Copyright (c) 2020 Sylvester Sefa-Yeboah
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package ind.guj.aha.mining;
+
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+import ind.guj.aha.Config.JDBC;
+import ind.guj.aha.Config.OkHttp;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Map;
+
+public class StockMarket {
+    public StockMarket() {
+    }
+
+    public Map<String, String> getList() {
+        Request request = new Request.Builder()
+                .url("https://indianstockexchange.p.rapidapi.com/index.php?id=%7Bscrip-id%7D")
+                .get()
+                .addHeader("X-RapidAPI-Key", "RGy3Jqp3JKcEJMLQ3Q4bju4Y5fqGdkxw")
+                .addHeader("X-RapidAPI-Host", "indianstockexchange.p.rapidapi.com")
+                .build();
+
+        try {
+            Response response = OkHttp.getInstance().getClient().newCall(request).execute();
+            System.out.println("response" + response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    public boolean getAllList() {
+        JSONArray array = null;
+        Request request = new Request.Builder()
+                .url("https://akm-img-a-in.tosshub.com/businesstoday/resource/market-widgets/prod/company-master-23-01-2023.json")
+                .get()
+                .build();
+
+        try {
+            Response response = OkHttp.getInstance().getClient().newCall(request).execute();
+            array = new JSONArray(response.body().string());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (array != null) {
+            Connection conn = JDBC.getInstance().getConnection();
+            try {
+                PreparedStatement stmt = conn.prepareStatement("insert into nsestocks values(?,?)");
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject jsonObject = (JSONObject) array.get(i);
+                    try {
+                        if (jsonObject.getString("nsesymbol").isEmpty()) {
+                            continue;
+                        }
+                        stmt.setString(1, jsonObject.getString("nsesymbol"));
+                        stmt.setString(2, jsonObject.getString("companyname"));
+                        stmt.executeUpdate();
+                    } catch (SQLException e) {
+                        System.out.println("Error : " + jsonObject.getString("nsesymbol"));
+                    }
+                }
+                conn.close();
+                return true;
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return false;
+    }
+
+    @CircuitBreaker(name = "historyApi", fallbackMethod = "fallbackMethod")
+    public boolean getAllHistory() {
+        Connection conn = JDBC.getInstance().getConnection();
+        try {
+            //ResultSet rs = conn.prepareStatement("select symbol from nsestocks").executeQuery();
+
+           // while (rs.next()) {
+                String symbol = "ACC";
+                		//rs.getString("symbol");//;
+                String uri=null;
+                
+                try {
+                	 uri = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol="+symbol+".BSE&outputsize=full&apikey=FX7M5DS9KCQBT6ZF";
+                    Response response = OkHttp.getInstance().getResponse(uri);
+                    System.out.println("response :" + response.body().string());
+                } catch (Exception e) {
+                    System.out.println("Exception on URI :" + uri);
+                    System.out.println("Exception on History :" + e.getMessage());
+                    throw e;
+                }
+            //}
+
+            conn.close();
+            return true;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public boolean fallbackMethod(Exception e) {
+        // Fallback logic when circuit breaker is open or any other exception occurs
+        System.out.println("Fallback method called.");
+        return false; // or any other fallback behavior
+    }
+
+}
